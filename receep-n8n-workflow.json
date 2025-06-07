@@ -1,0 +1,426 @@
+{
+  "name": "receep",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "upload_receipt",
+        "options": {
+          "binaryPropertyName": "data",
+          "rawBody": true,
+          "responseData": ""
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3991d462-2515-4326-b0bf-13517a126308",
+      "name": "Webhook",
+      "webhookId": "794941fe-1690-4a50-bf04-595712ec91f7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ocr.space/Parse/Image",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "base64image",
+              "value": "=data:{{ $('Edit Image').item.binary.data.mimeType }};base64,{{ $('Extract from File').item.json.data1 }}"
+            },
+            {
+              "name": "language",
+              "value": "tur"
+            },
+            {
+              "name": "isOverlayRequired",
+              "value": "false"
+            },
+            {
+              "name": "OCREngine",
+              "value": "2"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        120
+      ],
+      "id": "7fbecdd9-6a41-43ad-b473-071677877099",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "4hshX4DblYTHG7d2",
+          "name": "Header Auth account - OCRspace"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "destinationKey": "data1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        500,
+        120
+      ],
+      "id": "bc12304d-5e54-4a24-912c-362ef4bffae6",
+      "name": "Extract from File",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "resize",
+        "width": 180,
+        "height": 180,
+        "resizeOption": "percent",
+        "options": {
+          "format": "jpeg"
+        }
+      },
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [
+        240,
+        120
+      ],
+      "id": "a9c228e4-b466-4afb-83a6-580b8900cdac",
+      "name": "Edit Image",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sen bir fiş analiz asistanısın. Sana verilen fiş metninden aşağıdaki bilgileri JSON formatında çıkar. Bilgiler OCR ile taranarak oluşturuldu onun için iyi düşün ve doğru formatta üretimi yapmaya çalış. OCR bazen Türkçe karakterleri hatalı görüyor bunları da anlamı düşünerek düzeltmeye çalış I>İ gibi dönüşümleri yap.\n- fis_no\n- tarih (GG-AA-YYYY SS:DD formatında)\n- toplam_tutar (sadece sayı, virgül ondalık ayırıcı)\n- kdv_orani (sadece sayı, 0, 1, 10 ya da 20 olur bunun dışında olmaz. bazen ocr 18 giibi okuyabiliyor onları 10 olarak düzelt, 8 yazarsa da 0 olarak düzelt)\n- kdv_tutari (sadece sayı, virgül ondalık ayırıcı)\n- sirket_adi (genelde fişin başında ilk satırda yazar, metin veya nadiren de olsa sayı barındırabilir. Sonunda genelde LTD. , ŞTİ. , AŞ. İNŞ. TİC. gibi ünvanlar bulunur OCR bunları yanlış okursa, özellikle türkçe karakterleri, düzelt)\n- sirket adresi (cadde sokak bina no ilçe il vb. OCR ufak tefek yazım hataları yaparsa türkçe kelimeleri ve mahalle sokak ismi olabilecek kelimeleri düşünerek minör düzeltmeler yap. ama asla yeni kelime ekleme ve toplam harf sayısını değiştirme, yeni harfler ekleme sadece değiştirme yapabilirsin ekleme çıkarma değil)\n- sirket vergi dairesi (genelde sonunda V.D. tam anlaşılamıyorsa sen tamamla ve V.D. ile bitsin)\n- sirket vergi no (v.no veya vkn şeklinde belirtilebilir)\n\nEğer bir bilgiyi bulamazsan, o alanı null veya boş string olarak bırak.\n\nFiş Metni:\n\"\"\"\n{{ $('HTTP Request').item.json.ParsedResults[0].ParsedText }}\n\"\"\"\n\nİstenen JSON Çıktısı:",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        940,
+        120
+      ],
+      "id": "5059d565-6184-4ce3-8eb6-bc14cd797d0b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-preview-04-17",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        880,
+        360
+      ],
+      "id": "1b4ab090-955e-4adf-ae43-66fdf00772f9",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qCvSEqg3P4thDXJK",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "17yq3FU2jaE2R_gwSIS-6V8Asmh7JW2_Kz931beQLkUc",
+          "mode": "list",
+          "cachedResultName": "n8n-test",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17yq3FU2jaE2R_gwSIS-6V8Asmh7JW2_Kz931beQLkUc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17yq3FU2jaE2R_gwSIS-6V8Asmh7JW2_Kz931beQLkUc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fis_no": "={{ $json.output.fis_no }}",
+            "tarih": "={{ (() => {\n    const parts = $json.output.tarih.split(' ');\n    const dateParts = parts[0].split('-'); // [ '05', '03', '2025' ]\n    const timePart = parts[1]; // '11:06'\n\n    // Google Sheets için YYYY-MM-DDTHH:mm şeklinde formatlayalım\n    return `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${timePart}`;\n})() }}",
+            "toplam_tutar": "={{ parseFloat($json.output.toplam_tutar.replace(/\\./g, '').replace(',', '.')) }}",
+            "kdv_orani": "={{ parseFloat($json.output.kdv_orani.replace(/\\./g, '').replace(',', '.')) }}",
+            "kdv_tutari": "={{ parseFloat($json.output.kdv_tutari.replace(/\\./g, '').replace(',', '.')) }}",
+            "sirket_adi": "={{ $json.output.sirket_adi }}",
+            "sirket_adresi": "={{ $json.output.sirket_adresi }}",
+            "sirket_vergi_dairesi": "={{ $json.output.sirket_vergi_dairesi }}",
+            "sirket_vergi_no": "={{ $json.output.sirket_vergi_no }}"
+          },
+          "matchingColumns": [
+            "output"
+          ],
+          "schema": [
+            {
+              "id": "tarih",
+              "displayName": "tarih",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sirket_adi",
+              "displayName": "sirket_adi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sirket_adresi",
+              "displayName": "sirket_adresi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sirket_vergi_dairesi",
+              "displayName": "sirket_vergi_dairesi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sirket_vergi_no",
+              "displayName": "sirket_vergi_no",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fis_no",
+              "displayName": "fis_no",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "toplam_tutar",
+              "displayName": "toplam_tutar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kdv_orani",
+              "displayName": "kdv_orani",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "kdv_tutari",
+              "displayName": "kdv_tutari",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1300,
+        120
+      ],
+      "id": "cee6120e-fad3-4dc9-8aee-2ac3319fafff",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleApi": {
+          "id": "gPSuqC3Y3pXdUhDm",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"fis_no\": \"1\",\n  \"tarih\": \"05-03-2025 11:06\",\n  \"toplam_tutar\": \"845.00\",\n  \"kdv_orani\": \"10\",\n  \"kdv_tutari\": \"76.82\",\n  \"sirket_adi\": \"CENNEDY 41\",\n  \"sirket_adresi\": \"BARBAROS MAH KENNEDY CAD. NO 41 CANKAYA/ ANKARA\",\n  \"sirket_vergi_dairesi\": \"KAVAKLIDERE\",\n  \"sirket_vergi_no\": \"3740183719\"\n  }"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        340
+      ],
+      "id": "4c063da8-5d68-446d-acef-17c257abdd64",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        20,
+        320
+      ],
+      "id": "bcae1fcd-c152-4312-a45a-5ee7f1e95cdc",
+      "name": "Telegram Trigger",
+      "webhookId": "63ba26b9-9715-48e5-b78f-6747c1b2a9de",
+      "notesInFlow": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "X6MnCHuOqw4a6E6b",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Image": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "21e49d0a-1dd9-4a99-95bb-207d72a2a151",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "be24c3fac089a62cefb894d4c28477ad8ca25e3e10a7b735f8ab72c2ebfebccb"
+  },
+  "id": "8cV2ZOnBIbFMDxPd",
+  "tags": []
+}

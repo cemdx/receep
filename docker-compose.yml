@@ -5,18 +5,19 @@ services:
     image: n8nio/n8n:latest
     restart: always
     ports:
-      - "5678:5678" 
+      - "5678:5678"
     environment:
-      # Render arayüzünden ayarlanacaklar:
-      # - GENERIC_TIMEZONE=Europe/Istanbul
-      # - WEBHOOK_URL=https://YOUR_RENDER_APP_NAME.onrender.com/
-      # - EXECUTIONS_PROCESS=main
-      - N8N_USER_FOLDER=/var/n8n_data 
+      - GENERIC_TIMEZONE=Europe/Istanbul
+      - N8N_SECURE_COOKIE=false 
+      - WEBHOOK_URL= https://localhost:5678 #443 https portundan erişim sağlanan domain eklenmeli (telegram https istiyor, lokalde test edilemez)
     volumes:
-      - n8n_render_data:/var/n8n_data
+      - ./n8n_data:/home/node/.n8n
+    # Eğer ARM tabanlı bir VM (Ampere A1) kullanıyorsan ve n8n imajı otomatik algılamazsa:
+    # platform: linux/arm64 
 
 volumes:
-  n8n_render_data:
-    # Bu, Render'ın kalıcı diskini kullanmak için bir Docker volume tanımıdır.
-    # Render bu volume'u kendi kalıcı diskine otomatik olarak bağlayacaktır.
-    # External: true gibi bir ayara genellikle gerek kalmaz Render'da.
+  n8n_data:
+    # Bu, n8n_data adında bir Docker volume'u oluşturur.
+    # Alternatif olarak, yukarıdaki volumes tanımında olduğu gibi
+    # host makinesindeki bir yola da bağlayabilirsin (./n8n_data gibi).
+    # ./n8n_data kullanımı, verilerin ~/n8n_app/n8n_data klasöründe saklanmasını sağlar.O
